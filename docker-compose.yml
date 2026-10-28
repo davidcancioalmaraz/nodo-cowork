@@ -1,0 +1,39 @@
+services:
+  nodo-cowork-app:
+    build:
+      context: .
+      args:
+        UID: ${UID:-1000}
+        GID: ${GID:-1000}
+    image: nodo-cowork-app
+    container_name: nodo-cowork-app
+    restart: unless-stopped
+    ports:
+      - "${APP_PORT:-8000}:80"
+      - "${VITE_PORT:-5173}:5173"
+    volumes:
+      - .:/var/www/html
+    depends_on:
+      nodo-cowork-db:
+        condition: service_healthy
+
+  nodo-cowork-db:
+    image: postgres:17-alpine
+    container_name: nodo-cowork-db
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: ${DB_DATABASE:-nodo_cowork}
+      POSTGRES_USER: ${DB_USERNAME:-nodo_cowork}
+      POSTGRES_PASSWORD: ${DB_PASSWORD:-secret}
+    ports:
+      - "${FORWARD_DB_PORT:-5432}:5432"
+    volumes:
+      - nodo-cowork-db-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER} -d $${POSTGRES_DB}"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+volumes:
+  nodo-cowork-db-data:
